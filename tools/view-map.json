@@ -11,83 +11,83 @@
     "scene": "PB-Vista 1",
     "floor": "PB",
     "render": "pb-a.jpg",
-    "fov": 60
+    "fov": 46
   },
   {
     "id": "pb-b",
     "scene": "PB-Vista 2",
     "floor": "PB",
     "render": "pb-b.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "pb-c",
     "scene": "PB-Vista 3",
     "floor": "PB",
     "render": "pb-c.jpg",
-    "fov": 60
+    "fov": 47
   },
   {
     "id": "pb-d",
     "scene": "PB-Vista 4",
     "floor": "PB",
     "render": "pb-d.jpg",
-    "fov": 60
+    "fov": 58
   },
   {
     "id": "p1-a",
     "scene": "PA1-Vista 1",
     "floor": "P1",
     "render": "p1-a.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "p1-b",
     "scene": "PA1-Vista 2",
     "floor": "P1",
     "render": "p1-b.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "p1-c",
     "scene": "PA-Vista 3",
     "floor": "P1",
     "render": "p1-c.jpg",
-    "fov": 60
+    "fov": 47
   },
   {
     "id": "p1-d",
     "scene": "PA-Vista 4",
     "floor": "P1",
     "render": "p1-d.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "p2-a",
     "scene": "PA2-Vista1",
     "floor": "P2",
     "render": "p2-a.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "p2-b",
     "scene": "PA2-Vista 2",
     "floor": "P2",
     "render": "p2-b.jpg",
-    "fov": 60
+    "fov": 50
   },
   {
     "id": "p2-c",
     "scene": "PA2-Vista 3",
     "floor": "P2",
     "render": "p2-c.jpg",
-    "fov": 60
+    "fov": 46
   },
   {
     "id": "p2-d",
     "scene": "PA2-Vista 4",
     "floor": "P2",
     "render": "p2-d.jpg",
-    "fov": 60
+    "fov": 50
   }
 ]

@@ -34,3 +34,75 @@ export function topDownPose(bounds, floor, aspect, fovDeg = 50) {
   const dist = halfSpan / Math.tan(halfH);
   return { position: [target[0], target[1] + dist * Math.cos(TILT), target[2] + dist * Math.sin(TILT)], target };
 }
+
+/** Rectángulo de una imagen contenida y centrada en una caja, sin recortar ni deformar. */
+export function fitRect(imgW, imgH, boxW, boxH) {
+  const scale = Math.min(boxW / imgW, boxH / imgH);
+  const w = imgW * scale, h = imgH * scale;
+  return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
+}
+
+/**
+ * Campo de visión vertical que debe usar la cámara para que el modelo, a
+ * pantalla completa, coincida con un render contenido en esa pantalla.
+ * `fovAtImageAspect` es el fov vertical del render en su propia proporción.
+ */
+export function verticalFovFor(fovAtImageAspect, imgAspect, viewportAspect) {
+  if (viewportAspect >= imgAspect) return fovAtImageAspect;
+  const half = Math.tan(fovAtImageAspect * Math.PI / 360) * imgAspect / viewportAspect;
+  return 2 * Math.atan(half) * 180 / Math.PI;
+}
+
+const FLOOR_ORDER = ['EXT', 'PB', 'P1', 'P2'];
+
+/** Agrupa por piso las vistas que tienen render, en orden EXT, PB, P1, P2. */
+export function groupViews(views) {
+  return FLOOR_ORDER
+    .map(floor => ({ floor, items: views.filter(v => v.floor === floor && v.render) }))
+    .filter(g => g.items.length > 0);
+}
+
+const ease = t => t * t * (3 - 2 * t);
+
+function slerp(a, b, t) {
+  let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+  const sign = dot < 0 ? -1 : 1; dot = Math.abs(dot);
+  let wa = 1 - t, wb = t;
+  if (dot < 0.9995) {
+    const th = Math.acos(dot), s = Math.sin(th);
+    wa = Math.sin((1 - t) * th) / s; wb = Math.sin(t * th) / s;
+  }
+  const q = a.map((v, i) => wa * v + wb * sign * b[i]);
+  const len = Math.hypot(...q);
+  return q.map(v => v / len);
+}
+
+/**
+ * Vuelo de cámara entre dos poses {position:[3], quaternion:[4], fov}.
+ * Quien lo usa llama a tick(ms) en cada cuadro. Un start nuevo cancela el anterior.
+ */
+export function createFlight() {
+  let job = null;
+  return {
+    get active() { return job !== null; },
+    start(from, to, ms, onUpdate, onDone) { job = { from, to, ms, t: 0, onUpdate, onDone }; },
+    cancel() { job = null; },
+    tick(dtMs) {
+      if (!job) return;
+      const j = job;
+      j.t += dtMs;
+      if (j.t >= j.ms) {
+        job = null;
+        j.onUpdate({ position: [...j.to.position], quaternion: [...j.to.quaternion], fov: j.to.fov });
+        j.onDone?.();
+        return;
+      }
+      const k = ease(j.t / j.ms);
+      j.onUpdate({
+        position: j.from.position.map((v, i) => v + (j.to.position[i] - v) * k),
+        quaternion: slerp(j.from.quaternion, j.to.quaternion, k),
+        fov: j.from.fov + (j.to.fov - j.from.fov) * k,
+      });
+    },
+  };
+}

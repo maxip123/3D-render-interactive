@@ -40,7 +40,8 @@ function prepareMaterials(model) {
 
 /**
  * @returns {Promise<{scene, camera, renderer, controls, model, bounds, sun,
- *   onFrame(fn): void, setClipHeight(y: number|null): void, homePose(): {position, target}}>}
+ *   onFrame(fn): void, setClipHeight(y: number|null): void, homePose(): {position, target},
+ *   freeze(on: boolean): void, frozen: boolean}>}
  */
 export async function createViewer(canvas, { modelUrl, onProgress } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -101,14 +102,17 @@ export async function createViewer(canvas, { modelUrl, onProgress } = {}) {
   window.addEventListener('resize', resize);
   resize();
 
+  // Con la cámara "congelada" los controles no la reposicionan (vuelos y vistas exactas).
+  let frozen = false;
   const frameFns = [];
   let last = performance.now();
   renderer.setAnimationLoop(now => {
     const dt = (now - last) / 1000; last = now;
     for (const fn of frameFns) fn(dt, now);
-    controls.update();
+    if (!frozen) controls.update();
     renderer.render(scene, camera);
   });
 
-  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, homePose, resize };
+  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, homePose, resize,
+    freeze: on => { frozen = on; }, get frozen() { return frozen; } };
 }

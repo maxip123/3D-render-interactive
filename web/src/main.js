@@ -1,7 +1,9 @@
+import * as THREE from 'three';
 import { createViewer, hasWebGL } from './scene.js';
 import { describeLoadError } from './math.js';
-import * as THREE from 'three';
 import { initFloors } from './floors.js';
+import { initViews } from './views.js';
+import { initUI } from './ui.js';
 
 const loading = document.getElementById('loading');
 const loadingText = document.getElementById('loading-text');
@@ -12,42 +14,60 @@ function fail(err) {
   loadingText.textContent = describeLoadError(err);
 }
 
+const getJson = url => fetch(url).then(r => {
+  if (!r.ok) throw { kind: 'network', status: r.status };
+  return r.json();
+});
+
 async function start() {
   if (!hasWebGL()) return fail({ kind: 'webgl' });
-  let viewer;
+  let viewer, floorsData, viewsData;
   try {
-    viewer = await createViewer(document.getElementById('stage'), {
-      modelUrl: '/model/entreaguas.glb',
-      onProgress: f => { loadingBar.style.width = `${Math.round(f * 100)}%`; },
-    });
+    [viewer, floorsData, viewsData] = await Promise.all([
+      createViewer(document.getElementById('stage'), {
+        modelUrl: '/model/entreaguas.glb',
+        onProgress: f => { loadingBar.style.width = `${Math.round(f * 100)}%`; },
+      }),
+      getJson('/floors.json'),
+      getJson('/views.json'),
+    ]);
   } catch (err) {
     console.error(err);
     return fail(err);
   }
-  const floorsData = await fetch('/floors.json').then(r => r.json());
-  const floors = initFloors(viewer, floorsData);
-  const moveTo = pose => {
-    viewer.camera.position.fromArray(pose.position);
-    viewer.controls.target.fromArray(pose.target);
-  };
-  moveTo(floors.select('ALL'));
+
+  let ui;
+  const floors = initFloors(viewer, floorsData, id => ui?.setFloor(id));
+  const views = initViews(viewer, viewsData, document.getElementById('render'), (state, view) => ui?.setState(state, view));
+  ui = initUI(viewsData, {
+    onFloor: id => views.flyTo(floors.select(id)),
+    // Las vistas interiores necesitan el edificio sin cortar.
+    onView: id => { floors.select('ALL'); views.open(id); },
+    onToggle: showRender => views.showRender(showRender),
+    onClose: () => views.flyTo(floors.select(floors.current())),
+  });
+
+  const home = floors.select('ALL');
+  viewer.camera.position.fromArray(home.position);
+  viewer.controls.target.fromArray(home.target);
   loading.classList.add('done');
-  if (import.meta.env.DEV) window.__floor = id => moveTo(floors.select(id));
-  if (import.meta.env.DEV) {
-    window.__viewer = viewer;   // para depurar desde la consola
-    window.__pick = (x, y) => {
-      const r = new THREE.Raycaster();
-      const el = viewer.renderer.domElement;
-      r.setFromCamera(new THREE.Vector2(x / el.clientWidth * 2 - 1, -(y / el.clientHeight) * 2 + 1), viewer.camera);
-      const hit = r.intersectObject(viewer.model, true)[0];
-      if (!hit) return null;
-      const g = hit.object.geometry;
-      const box = new THREE.Box3().setFromObject(hit.object).getSize(new THREE.Vector3());
-      return { material: hit.object.material.name, tris: (g.index ? g.index.count : g.attributes.position.count) / 3,
-        instanced: hit.object.isInstancedMesh ? hit.object.count : 0, size: box.toArray().map(n => +n.toFixed(2)), uv: hit.uv?.toArray().map(n => +n.toFixed(2)),
-        tex: hit.object.material.map ? [hit.object.material.map.image.width, hit.object.material.map.image.height] : null };
-    };
-  }
+
+  if (new URLSearchParams(location.search).has('calibrar')) calibrate(views);
+  if (import.meta.env.DEV) Object.assign(window, { __viewer: viewer, __views: views, __floors: floors, THREE });
+}
+
+/** Modo de ajuste: render al 50 % y teclas [ ] para cambiar el campo de visión de la vista abierta. */
+function calibrate(views) {
+  document.body.classList.add('calibrar');
+  const badge = document.createElement('output');
+  badge.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:4px 10px;z-index:20;font:14px monospace';
+  document.body.append(badge);
+  addEventListener('keydown', e => {
+    const v = views.current();
+    if (!v || (e.key !== '[' && e.key !== ']')) return;
+    views.setFov(+(v.fov + (e.key === ']' ? 0.5 : -0.5)).toFixed(1));
+    badge.textContent = `${v.id}  fov ${v.fov}`;
+  });
 }
 
 start();
