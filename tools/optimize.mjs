@@ -5,6 +5,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { metalRough, dedup, instance, weld, compactPrimitive, prune, textureCompress, meshopt } from '@gltf-transform/functions';
 import { MeshoptEncoder, MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
+import { surfaceFor } from './lib/materials.js';
 
 const SRC = process.argv[2] ?? 'santiago mercado.glb';
 const OUT = 'web/public/model/entreaguas.glb';
@@ -25,6 +26,35 @@ const step = name => console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${
 const doc = await io.read(SRC);
 
 step('materiales a metal/rugosidad'); await doc.transform(metalRough());
+step('acabados por material');
+for (const ext of doc.getRoot().listExtensionsUsed()) if (/KHR_materials_(specular|ior)/.test(ext.extensionName)) ext.dispose();
+for (const mat of doc.getRoot().listMaterials()) {
+  const { metallic, roughness } = surfaceFor(mat.getName());
+  mat.setMetallicFactor(metallic).setRoughnessFactor(roughness);
+}
+// Una de las texturas de la silla gris es una grilla de prueba de UV que quedó
+// en el componente original; en los renders esa parte es tela gris.
+for (const mat of doc.getRoot().listMaterials()) {
+  if (/Munick.*Tecido Cinza_6/.test(mat.getName())) mat.setBaseColorTexture(null).setBaseColorFactor([0.33, 0.35, 0.37, 1]);
+}
+// Las piezas sin material y con volumen redondeado son los bultos de vegetación
+// del modelo (en SketchUp están en blanco); el resto queda blanco (luminarias, marcos).
+const plant = doc.createMaterial('Vegetación').setBaseColorFactor([0.13, 0.26, 0.09, 1]).setRoughnessFactor(0.9).setMetallicFactor(0).setDoubleSided(true);
+const white = doc.createMaterial('Blanco').setBaseColorFactor([0.85, 0.83, 0.8, 1]).setRoughnessFactor(0.6).setMetallicFactor(0).setDoubleSided(true);
+let plants = 0;
+for (const mesh of doc.getRoot().listMeshes()) for (const prim of mesh.listPrimitives()) {
+  if (prim.getMaterial()) continue;
+  const pos = prim.getAttribute('POSITION'), min = pos.getMin([]), max = pos.getMax([]);
+  const dims = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
+  const tris = prim.getIndices().getCount() / 3;
+  if (process.env.DEBUG_PLANTS) console.log(tris, dims.map(d => d.toFixed(2)).join(' x '));
+  // Medidas locales en pulgadas (unidad interna de SketchUp).
+  const isPlant = tris >= 150 && Math.min(...dims) >= 12 && Math.max(...dims) >= 24 && Math.max(...dims) <= 260;
+  prim.setMaterial(isPlant ? plant : white);
+  if (isPlant) plants++;
+}
+console.log(`  ${plants} volúmenes de vegetación`);
+
 step('duplicados');                    await doc.transform(dedup());
 step('soldar vértices');               await doc.transform(weld());
 
