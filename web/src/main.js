@@ -1,6 +1,7 @@
 import { createViewer, hasWebGL } from './scene.js';
 import { describeLoadError } from './math.js';
 import * as THREE from 'three';
+import { initFloors } from './floors.js';
 
 const loading = document.getElementById('loading');
 const loadingText = document.getElementById('loading-text');
@@ -23,7 +24,15 @@ async function start() {
     console.error(err);
     return fail(err);
   }
+  const floorsData = await fetch('/floors.json').then(r => r.json());
+  const floors = initFloors(viewer, floorsData);
+  const moveTo = pose => {
+    viewer.camera.position.fromArray(pose.position);
+    viewer.controls.target.fromArray(pose.target);
+  };
+  moveTo(floors.select('ALL'));
   loading.classList.add('done');
+  if (import.meta.env.DEV) window.__floor = id => moveTo(floors.select(id));
   if (import.meta.env.DEV) {
     window.__viewer = viewer;   // para depurar desde la consola
     window.__pick = (x, y) => {
