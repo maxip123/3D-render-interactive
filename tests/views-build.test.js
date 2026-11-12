@@ -46,3 +46,19 @@ test('nodo sin rotación usa la identidad', () => {
 test('devuelve una View por entrada del mapa, en el mismo orden', () => {
   expect(buildViews(gltf, map).map(v => v.id)).toEqual(['pb-a', 'p1-a', 'x']);
 });
+
+import { existsSync, readFileSync } from 'node:fs';
+import { readGlbJson } from '../tools/lib/glb.js';
+
+test.skipIf(!existsSync('web/public/model/entreaguas.glb'))(
+  'el GLB optimizado conserva las cámaras de escena del original', () => {
+    const map = JSON.parse(readFileSync('tools/view-map.json', 'utf8'));
+    const a = buildViews(readGlbJson('santiago mercado.glb'), map);
+    const b = buildViews(readGlbJson('web/public/model/entreaguas.glb'), map);
+    for (let i = 0; i < a.length; i++) {
+      expect(b[i].position, a[i].id).not.toBeNull();
+      for (let k = 0; k < 3; k++) expect(b[i].position[k]).toBeCloseTo(a[i].position[k], 3);
+      const dot = Math.abs(a[i].quaternion.reduce((s, v, k) => s + v * b[i].quaternion[k], 0));
+      expect(dot).toBeCloseTo(1, 4);
+    }
+  });
