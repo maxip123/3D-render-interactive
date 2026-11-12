@@ -30,10 +30,13 @@ export function applyRootQuat(rootMatrix, q) {
   return [out.x, out.y, out.z, out.w];
 }
 
-const IDENTITY = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
-
-/** Matriz del primer nodo raíz de la escena (identidad si no tiene). */
+/** Matriz del primer nodo raíz de la escena, venga como `matrix` o como TRS. */
 export function rootMatrixOf(gltf) {
   const root = gltf.nodes[gltf.scenes[0].nodes[0]];
-  return root.matrix ?? IDENTITY;
+  if (root.matrix) return root.matrix;
+  return new Matrix4().compose(
+    new Vector3(...(root.translation ?? [0, 0, 0])),
+    new Quaternion(...(root.rotation ?? [0, 0, 0, 1])),
+    new Vector3(...(root.scale ?? [1, 1, 1])),
+  ).toArray();
 }

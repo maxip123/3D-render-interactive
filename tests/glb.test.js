@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { readGlbJson, applyRoot, applyRootQuat } from '../tools/lib/glb.js';
+import { readGlbJson, applyRoot, applyRootQuat, rootMatrixOf } from '../tools/lib/glb.js';
 
 const ROOT = [1,0,0,0, 0,4.49e-11,-1,0, 0,1,4.49e-11,0, 0,0,0,1];
 
@@ -27,4 +27,10 @@ test('applyRootQuat con identidad gira el eje Z local hacia Y del visor', () => 
 test('readGlbJson lee el modelo real', () => {
   const j = readGlbJson('santiago mercado.glb');
   expect(j.nodes.some(n => n.name === 'PB-Vista 1')).toBe(true);
+});
+
+test('rootMatrixOf acepta una raíz expresada como rotación (TRS)', () => {
+  const gltf = { scenes: [{ nodes: [0] }], nodes: [{ rotation: [-Math.SQRT1_2, 0, 0, Math.SQRT1_2] }] };
+  const p = applyRoot(rootMatrixOf(gltf), [1, 2, 3]);
+  expect(p[0]).toBeCloseTo(1); expect(p[1]).toBeCloseTo(3); expect(p[2]).toBeCloseTo(-2);
 });
