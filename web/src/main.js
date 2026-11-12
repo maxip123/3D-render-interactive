@@ -4,6 +4,7 @@ import { describeLoadError } from './math.js';
 import { initFloors } from './floors.js';
 import { initViews } from './views.js';
 import { initUI } from './ui.js';
+import { watchQuality } from './quality.js';
 
 const loading = document.getElementById('loading');
 const loadingText = document.getElementById('loading-text');
@@ -50,10 +51,11 @@ async function start() {
   const home = floors.select('ALL');
   viewer.camera.position.fromArray(home.position);
   viewer.controls.target.fromArray(home.target);
+  const quality = watchQuality(viewer, () => views.state() === 'flying');
   loading.classList.add('done');
 
   if (new URLSearchParams(location.search).has('calibrar')) calibrate(views);
-  if (import.meta.env.DEV) Object.assign(window, { __viewer: viewer, __views: views, __floors: floors, THREE });
+  if (import.meta.env.DEV) Object.assign(window, { __viewer: viewer, __views: views, __floors: floors, __quality: quality, THREE });
 }
 
 /** Modo de ajuste: render al 50 % y teclas [ ] para cambiar el campo de visión de la vista abierta. */

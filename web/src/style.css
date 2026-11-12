@@ -13,7 +13,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #render { position: fixed; pointer-events: none; opacity: 0; transition: opacity .6s ease; user-select: none; }
-#render.visible { opacity: 1; }
+/* El render se ve entero; el resto de la pantalla se oscurece para que no compita. */
+#render.visible { opacity: 1; box-shadow: 0 0 0 100vmax rgba(20, 16, 13, .9); }
 body.calibrar #render.visible { opacity: .5; }
 
 #top { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap);
