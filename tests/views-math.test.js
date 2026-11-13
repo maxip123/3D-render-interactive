@@ -15,14 +15,11 @@ test('pantalla más ancha que el render: bandas a los lados', () => {
   expect(r.x).toBeCloseTo((1920 - 1124.6) / 2, 1);
   expect(r.y).toBe(0);
 });
-test('mismo aspecto: verticalFovFor devuelve el fov original', () => {
-  expect(verticalFovFor(60, 1.25, 1.25)).toBeCloseTo(60);
-});
-test('pantalla más ancha que el render: el fov vertical no cambia', () => {
-  expect(verticalFovFor(60, 1.25, 2)).toBeCloseTo(60);
+test('render a toda la altura: verticalFovFor devuelve el fov original', () => {
+  expect(verticalFovFor(60, 900, 900)).toBeCloseTo(60);
 });
 test('pantalla más alta que el render: fov vertical mayor que el original', () => {
-  const v = verticalFovFor(60, 1402 / 1122, 390 / 844);
+  const v = verticalFovFor(60, 312.11, 844);
   expect(v).toBeGreaterThan(60);
   // la franja del render (312 de 844 px) debe abarcar exactamente 60°
   const half = Math.tan(v * Math.PI / 360) * (312.11 / 844);

@@ -24,7 +24,7 @@ const TILT = 35 * Math.PI / 180;
  * @param bounds {{min:number[], max:number[]}} @param floor {{floorY:number, box?:{min:number[],max:number[]}}}
  * @returns {{position:number[], target:number[]}}
  */
-export function topDownPose(bounds, floor, aspect, fovDeg = 50) {
+export function topDownPose(bounds, floor, aspect, fovDeg = FREE_FOV) {
   // Huella propia del piso [x, z] si existe; si no, la caja de todo el modelo.
   const lo = floor.box ? floor.box.min : [bounds.min[0], bounds.min[2]];
   const hi = floor.box ? floor.box.max : [bounds.max[0], bounds.max[2]];
@@ -42,14 +42,22 @@ export function fitRect(imgW, imgH, boxW, boxH) {
   return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
 }
 
+/** Campo de visión del recorrido libre. */
+export const FREE_FOV = 50;
+
+/** Zona de la pantalla donde cabe el render: deja franjas iguales arriba y abajo para los controles. */
+export function renderBox(viewportW, viewportH, margin) {
+  const m = Math.min(margin, viewportH / 3);
+  return { x: 0, y: m, w: viewportW, h: viewportH - 2 * m };
+}
+
 /**
- * Campo de visión vertical que debe usar la cámara para que el modelo, a
- * pantalla completa, coincida con un render contenido en esa pantalla.
- * `fovAtImageAspect` es el fov vertical del render en su propia proporción.
+ * Campo de visión vertical que debe usar la cámara (a pantalla completa) para
+ * que el modelo coincida con un render que ocupa `renderH` de los `viewportH`
+ * píxeles de alto, centrado. `fovAtImage` es el fov vertical del propio render.
  */
-export function verticalFovFor(fovAtImageAspect, imgAspect, viewportAspect) {
-  if (viewportAspect >= imgAspect) return fovAtImageAspect;
-  const half = Math.tan(fovAtImageAspect * Math.PI / 360) * imgAspect / viewportAspect;
+export function verticalFovFor(fovAtImage, renderH, viewportH) {
+  const half = Math.tan(fovAtImage * Math.PI / 360) * viewportH / renderH;
   return 2 * Math.atan(half) * 180 / Math.PI;
 }
 

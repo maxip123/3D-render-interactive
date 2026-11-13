@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createViewer, hasWebGL } from './scene.js';
-import { describeLoadError } from './math.js';
+import { describeLoadError, groupViews } from './math.js';
 import { initFloors } from './floors.js';
 import { initViews } from './views.js';
 import { initUI } from './ui.js';
@@ -44,6 +44,11 @@ async function start() {
     onFloor: id => views.flyTo(floors.select(id)),
     // Las vistas interiores necesitan el edificio sin cortar.
     onView: id => { floors.select('ALL'); views.open(id); },
+    onStep: dir => {
+      const order = groupViews(viewsData).flatMap(g => g.items);
+      const i = order.indexOf(views.current());
+      if (i >= 0) views.open(order[(i + dir + order.length) % order.length].id);
+    },
     onToggle: showRender => views.showRender(showRender),
     onClose: () => views.flyTo(floors.select(floors.current())),
   });

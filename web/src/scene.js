@@ -80,9 +80,16 @@ export async function createViewer(canvas, { modelUrl, onProgress } = {}) {
   scene.add(sun, sun.target, new THREE.HemisphereLight('#ffdfc0', '#3a2a1e', 0.45));
 
   const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+  // El corte por piso no afecta al pase de sombras: los pisos ocultos seguirían
+  // sombreando el interior expuesto, así que con corte activo el sol no proyecta sombra.
+  let shadowsWanted = false, clipped = false;
+  const syncShadows = () => { sun.castShadow = shadowsWanted && !clipped; };
+  const setShadows = on => { shadowsWanted = on; syncShadows(); };
   const setClipHeight = y => {
-    if (y == null) renderer.clippingPlanes = [];
-    else { clip.constant = y; renderer.clippingPlanes = [clip]; }
+    clipped = y != null;
+    if (clipped) { clip.constant = y; renderer.clippingPlanes = [clip]; }
+    else renderer.clippingPlanes = [];
+    syncShadows();
   };
 
   const homePose = () => ({
@@ -113,6 +120,6 @@ export async function createViewer(canvas, { modelUrl, onProgress } = {}) {
     renderer.render(scene, camera);
   });
 
-  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, homePose, resize,
+  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, setShadows, homePose, resize,
     freeze: on => { frozen = on; }, get frozen() { return frozen; } };
 }

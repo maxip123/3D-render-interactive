@@ -12,7 +12,7 @@ export function viewLabel(view) {
 }
 
 /**
- * @param handlers {{ onFloor(id), onView(id), onToggle(showRender: boolean), onClose() }}
+ * @param handlers {{ onFloor(id), onView(id), onStep(dir: 1|-1), onToggle(showRender: boolean), onClose() }}
  * @returns {{ setFloor(id), setState(state, view) }}
  */
 export function initUI(views, handlers) {
@@ -45,6 +45,8 @@ export function initUI(views, handlers) {
 
   toggle.addEventListener('click', () => handlers.onToggle(toggle.getAttribute('aria-pressed') !== 'true'));
   $('close-view').addEventListener('click', () => handlers.onClose());
+  $('prev-view').addEventListener('click', () => handlers.onStep(-1));
+  $('next-view').addEventListener('click', () => handlers.onStep(1));
   const dismissHint = () => hint.classList.add('gone');
   $('stage').addEventListener('pointerdown', dismissHint, { once: true });
 
@@ -57,6 +59,7 @@ export function initUI(views, handlers) {
     setState(state, view) {
       const inView = state === 'render' || state === 'model';
       bar.hidden = !inView;
+      strip.hidden = inView;            // el render se ve entero: la tira vuelve al salir de la vista
       if (inView || state === 'flying') dismissHint();
       if (inView) {
         $('view-name').textContent = viewLabel(view);

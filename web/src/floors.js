@@ -29,12 +29,12 @@ export function initFloors(viewer, floors, onChange) {
           max: [Math.max(...all.map(f => f.box.max[0])), Math.max(...all.map(f => f.box.max[1]))],
         };
         const midY = Math.max(...all.map(f => f.clipY)) / 2;
-        const top = topDownPose(box, { floorY: midY, box: union }, viewer.camera.aspect, viewer.camera.fov);
+        const top = topDownPose(box, { floorY: midY, box: union }, viewer.camera.aspect);
         const dist = Math.hypot(...top.position.map((v, i) => v - top.target[i])) * 1.2;
         const dir = [-0.3, 0.42, 0.86];
         return { position: top.target.map((v, i) => v + dir[i] * dist), target: top.target };
       }
-      return topDownPose(box, floors[current], viewer.camera.aspect, viewer.camera.fov);
+      return topDownPose(box, floors[current], viewer.camera.aspect);
     },
   };
 }

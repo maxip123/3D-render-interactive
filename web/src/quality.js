@@ -33,7 +33,7 @@ const LEVELS = [
 export function applyQuality(viewer, level) {
   const { shadows, pixelRatio } = LEVELS[level];
   viewer.renderer.shadowMap.enabled = shadows;
-  viewer.sun.castShadow = shadows;
+  viewer.setShadows(shadows);
   viewer.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatio));
   viewer.resize();
   // Activar o desactivar sombras exige recompilar los materiales.
