@@ -3,6 +3,7 @@
 import { describeLoadError, groupViews } from './math.js';
 import { initGallery } from './gallery.js';
 import { initUI } from './ui.js';
+import { initExterior } from './exterior.js';
 
 const BASE = import.meta.env.BASE_URL;
 const $ = id => document.getElementById(id);
@@ -38,13 +39,18 @@ async function start() {
   const canvas = $('stage'), img = $('render');
   let app = null, entering = false;
 
-  const gallery = initGallery(viewsData, img, () => ({ w: innerWidth, h: innerHeight }), (s, v) => ui.setState(s, v), BASE);
+  const exterior = initExterior($('orbit'), img, $('orbit-hint'), `${BASE}exterior/fachada-derecha.mp4`);
+  const gallery = initGallery(viewsData, img, () => ({ w: innerWidth, h: innerHeight }), (s, v) => {
+    ui.setState(s, v);
+    exterior.enable(v.id === 'fachada');     // solo la fachada tiene clip para rodearla
+  }, BASE);
 
   async function enter3D() {
     if (app || entering) return;
     if (!hasWebGL()) return fail({ kind: 'webgl' });
     entering = true;
     const resume = gallery.current();
+    exterior.enable(false);
     showLoading('Cargando el modelo 3D…');
     try {
       const { start3D } = await import('./app3d.js');
@@ -65,8 +71,8 @@ async function start() {
   }
 
   const ui = initUI(viewsData, {
-    onView: id => (app ? app.openView(id) : gallery.open(id)),
-    onStep: dir => (app ? app.step(dir) : gallery.step(dir)),
+    onView: id => { exterior.enable(false); app ? app.openView(id) : gallery.open(id); },
+    onStep: dir => { exterior.enable(false); app ? app.step(dir) : gallery.step(dir); },
     onFloor: id => app?.selectFloor(id),
     onToggle: on => app?.toggleRender(on),
     onClose: () => app?.close(),

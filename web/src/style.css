@@ -69,3 +69,12 @@ body.calibrar #render.visible { opacity: .5; }
 /* Modo liviano: solo renders. Lo propio del 3D aparece al entrar al recorrido. */
 body.gallery #floors, body.gallery #toggle, body.gallery #close-view, body.gallery #hint, body.gallery #strip { display: none !important; }
 body:not(.gallery) #enter-3d { display: none; }
+
+/* Vista exterior interactiva: el clip se superpone al render de la fachada. */
+#orbit { position: fixed; opacity: 0; pointer-events: none; touch-action: none; object-fit: fill; user-select: none; transition: opacity .25s; }
+#orbit.active { pointer-events: auto; cursor: grab; }
+#orbit.active:active { cursor: grabbing; }
+#orbit.visible { opacity: 1; }
+#orbit-hint { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); margin: 0; padding: 8px 14px; border-radius: 999px;
+  background: var(--panel); color: var(--ink); font-size: 13px; white-space: nowrap; pointer-events: none; transition: opacity .4s; z-index: 2; }
+#orbit-hint.gone { opacity: 0; }

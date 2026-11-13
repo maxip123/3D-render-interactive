@@ -114,3 +114,13 @@ export function createFlight() {
     },
   };
 }
+
+/**
+ * Instante del clip de la fachada tras arrastrar `dxPx` píxeles. Arrastrar la
+ * imagen hacia la izquierda equivale a mover la cámara a la derecha (avanza el
+ * clip); el ancho completo de la imagen recorre el clip entero.
+ */
+export function scrubTime(startTime, dxPx, widthPx, duration) {
+  if (!(widthPx > 0) || !(duration > 0)) return startTime;
+  return Math.min(duration, Math.max(0, startTime - dxPx / widthPx * duration));
+}
