@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Entreaguas Resto Bar — recorrido 3D</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
   <canvas id="stage" aria-label="Modelo 3D de Entreaguas Resto Bar. Arrastra para girar."></canvas>
@@ -23,6 +23,7 @@
     <button id="prev-view" type="button" aria-label="Vista anterior">‹</button>
     <span id="view-name"></span>
     <button id="next-view" type="button" aria-label="Vista siguiente">›</button>
+    <button id="enter-3d" type="button">Recorrer en 3D</button>
     <button id="toggle" type="button" aria-pressed="true">Ver modelo</button>
     <button id="close-view" type="button">Recorrer libre</button>
   </div>
@@ -31,9 +32,9 @@
   <nav id="strip" aria-label="Vistas de los renders" hidden></nav>
 
   <div id="loading" role="status" aria-live="polite">
-    <p id="loading-text">Cargando el modelo…</p>
+    <p id="loading-text">Cargando…</p>
     <div class="bar"><div id="loading-bar"></div></div>
   </div>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

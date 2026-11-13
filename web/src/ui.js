@@ -12,7 +12,7 @@ export function viewLabel(view) {
 }
 
 /**
- * @param handlers {{ onFloor(id), onView(id), onStep(dir: 1|-1), onToggle(showRender: boolean), onClose() }}
+ * @param handlers {{ onFloor(id), onView(id), onStep(dir: 1|-1), onToggle(showRender: boolean), onClose(), onEnter3D() }}
  * @returns {{ setFloor(id), setState(state, view) }}
  */
 export function initUI(views, handlers) {
@@ -35,7 +35,7 @@ export function initUI(views, handlers) {
       const b = document.createElement('button');
       b.type = 'button'; b.dataset.view = view.id; b.title = viewLabel(view);
       const img = document.createElement('img');
-      img.src = `/renders/thumbs/${view.render}`; img.alt = viewLabel(view); img.loading = 'lazy';
+      img.src = `${import.meta.env.BASE_URL}renders/thumbs/${view.render}`; img.alt = viewLabel(view); img.loading = 'lazy';
       b.append(img);
       b.addEventListener('click', () => handlers.onView(view.id));
       row.append(b);
@@ -45,6 +45,7 @@ export function initUI(views, handlers) {
 
   toggle.addEventListener('click', () => handlers.onToggle(toggle.getAttribute('aria-pressed') !== 'true'));
   $('close-view').addEventListener('click', () => handlers.onClose());
+  $('enter-3d').addEventListener('click', () => handlers.onEnter3D());
   $('prev-view').addEventListener('click', () => handlers.onStep(-1));
   $('next-view').addEventListener('click', () => handlers.onStep(1));
   const dismissHint = () => hint.classList.add('gone');

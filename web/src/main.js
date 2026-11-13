@@ -1,16 +1,21 @@
-import * as THREE from 'three';
-import { createViewer, hasWebGL } from './scene.js';
+// Arranque. La página abre en modo liviano (solo renders); Three.js y el modelo
+// se descargan recién cuando la persona toca "Recorrer en 3D".
 import { describeLoadError, groupViews } from './math.js';
-import { initFloors } from './floors.js';
-import { initViews } from './views.js';
+import { initGallery } from './gallery.js';
 import { initUI } from './ui.js';
-import { watchQuality } from './quality.js';
 
-const loading = document.getElementById('loading');
-const loadingText = document.getElementById('loading-text');
-const loadingBar = document.getElementById('loading-bar');
+const BASE = import.meta.env.BASE_URL;
+const $ = id => document.getElementById(id);
+const loading = $('loading'), loadingText = $('loading-text'), loadingBar = $('loading-bar');
 
+function showLoading(text) {
+  loading.classList.remove('done', 'error');
+  loadingBar.style.width = '0';
+  loadingText.textContent = text;
+}
 function fail(err) {
+  console.error(err);
+  loading.classList.remove('done');
   loading.classList.add('error');
   loadingText.textContent = describeLoadError(err);
 }
@@ -20,61 +25,59 @@ const getJson = url => fetch(url).then(r => {
   return r.json();
 });
 
-async function start() {
-  if (!hasWebGL()) return fail({ kind: 'webgl' });
-  let viewer, floorsData, viewsData;
+function hasWebGL() {
   try {
-    [viewer, floorsData, viewsData] = await Promise.all([
-      createViewer(document.getElementById('stage'), {
-        modelUrl: '/model/entreaguas.glb',
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch { return false; }
+}
+
+async function start() {
+  const viewsData = await getJson(`${BASE}views.json`);
+  const order = groupViews(viewsData).flatMap(g => g.items);
+  const canvas = $('stage'), img = $('render');
+  let app = null, entering = false;
+
+  const gallery = initGallery(viewsData, img, () => ({ w: innerWidth, h: innerHeight }), (s, v) => ui.setState(s, v), BASE);
+
+  async function enter3D() {
+    if (app || entering) return;
+    if (!hasWebGL()) return fail({ kind: 'webgl' });
+    entering = true;
+    const resume = gallery.current();
+    showLoading('Cargando el modelo 3D…');
+    try {
+      const { start3D } = await import('./app3d.js');
+      gallery.stop();
+      img.classList.remove('visible');
+      app = await start3D({
+        base: BASE, canvas, img, viewsData, order, getJson, ui,
         onProgress: f => { loadingBar.style.width = `${Math.round(f * 100)}%`; },
-      }),
-      getJson('/floors.json'),
-      getJson('/views.json'),
-    ]);
-  } catch (err) {
-    console.error(err);
-    return fail(err);
+      });
+    } catch (err) {
+      entering = false;
+      return fail(err);
+    }
+    document.body.classList.remove('gallery');
+    ui.setState('free', null);
+    loading.classList.add('done');
+    if (resume) app.openView(resume.id);       // sigue en la misma vista, ahora con el modelo detrás
   }
 
-  let ui;
-  const floors = initFloors(viewer, floorsData, id => ui?.setFloor(id));
-  const views = initViews(viewer, viewsData, document.getElementById('render'), (state, view) => ui?.setState(state, view));
-  ui = initUI(viewsData, {
-    onFloor: id => views.flyTo(floors.select(id)),
-    // Las vistas interiores necesitan el edificio sin cortar.
-    onView: id => { floors.select('ALL'); views.open(id); },
-    onStep: dir => {
-      const order = groupViews(viewsData).flatMap(g => g.items);
-      const i = order.indexOf(views.current());
-      if (i >= 0) views.open(order[(i + dir + order.length) % order.length].id);
-    },
-    onToggle: showRender => views.showRender(showRender),
-    onClose: () => views.flyTo(floors.select(floors.current())),
+  const ui = initUI(viewsData, {
+    onView: id => (app ? app.openView(id) : gallery.open(id)),
+    onStep: dir => (app ? app.step(dir) : gallery.step(dir)),
+    onFloor: id => app?.selectFloor(id),
+    onToggle: on => app?.toggleRender(on),
+    onClose: () => app?.close(),
+    onEnter3D: enter3D,
   });
 
-  const home = floors.select('ALL');
-  viewer.camera.position.fromArray(home.position);
-  viewer.controls.target.fromArray(home.target);
-  const quality = watchQuality(viewer, () => views.state() === 'flying');
+  document.body.classList.add('gallery');
+  addEventListener('resize', () => { if (!app) gallery.layout(); });
+  const first = gallery.first();
+  if (first) gallery.open(first.id);
   loading.classList.add('done');
-
-  if (new URLSearchParams(location.search).has('calibrar')) calibrate(views);
-  if (import.meta.env.DEV) Object.assign(window, { __viewer: viewer, __views: views, __floors: floors, __quality: quality, THREE });
 }
 
-/** Modo de ajuste: render al 50 % y teclas [ ] para cambiar el campo de visión de la vista abierta. */
-function calibrate(views) {
-  document.body.classList.add('calibrar');
-  const badge = document.createElement('output');
-  badge.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#000;color:#fff;padding:4px 10px;z-index:20;font:14px monospace';
-  document.body.append(badge);
-  addEventListener('keydown', e => {
-    const v = views.current();
-    if (!v || (e.key !== '[' && e.key !== ']')) return;
-    views.setFov(+(v.fov + (e.key === ']' ? 0.5 : -0.5)).toFixed(1));
-    badge.textContent = `${v.id}  fov ${v.fov}`;
-  });
-}
-
-start();
+start().catch(fail);

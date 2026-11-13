@@ -145,3 +145,11 @@ Vite + Three.js, JavaScript sin framework.
    lado; muros, aberturas y muebles deben coincidir en posición.
 5. **Uso real:** probar en el navegador órbita, selector de piso y las 13
    vistas, en tamaño escritorio y en tamaño celular, sin errores en consola.
+
+## Cambio posterior (2026-11-13): modo liviano por defecto
+
+La página abre mostrando solo los renders originales (galería con anterior /
+siguiente). Three.js y el modelo se descargan recién al tocar "Recorrer en 3D",
+y el recorrido continúa en la vista que estaba abierta. Motivo: que abra al
+instante y no cargue el 3D en equipos modestos sin que se pida. Se descartó el
+recorrido animado con IA (Higgsfield) por costo.
