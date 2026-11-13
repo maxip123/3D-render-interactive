@@ -39,7 +39,10 @@ async function start() {
   const canvas = $('stage'), img = $('render');
   let app = null, entering = false;
 
-  const exterior = initExterior($('orbit'), img, $('orbit-hint'), `${BASE}exterior/fachada-derecha.mp4`);
+  const exterior = initExterior($('orbit'), $('orbit-left'), img, $('orbit-hint'), {
+    right: `${BASE}exterior/fachada-derecha.mp4`,
+    // Sin clip izquierdo: el intento generado giró hacia el mismo lado (ver higgsfield/).
+  });
   const gallery = initGallery(viewsData, img, () => ({ w: innerWidth, h: innerHeight }), (s, v) => {
     ui.setState(s, v);
     exterior.enable(v.id === 'fachada');     // solo la fachada tiene clip para rodearla

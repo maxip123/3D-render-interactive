@@ -1,66 +1,76 @@
-// Vista exterior interactiva: un clip corto que rodea la fachada y que la
-// persona recorre arrastrando. El clip parte del render original, así que en
-// reposo se ve el render nítido y el video aparece solo al arrastrar.
-import { scrubTime } from './math.js';
+// Vista exterior interactiva: dos clips cortos que rodean la fachada (uno hacia
+// cada lado) y que la persona recorre arrastrando. Ambos parten del render
+// original, así que en reposo se ve el render nítido y el video aparece solo
+// al arrastrar.
+import { scrubPosition } from './math.js';
 
-/**
- * @param video  <video> superpuesto al render
- * @param img    <img> del render (el video copia su posición)
- * @param hint   elemento con la indicación "Arrastra…"
- * @param url    dirección del clip
- * @returns {{ enable(on: boolean) }}
- */
-export function initExterior(video, img, hint, url) {
-  let enabled = false, loaded = false;
-  let drag = null;                 // { x, time } al empezar a arrastrar
-  let target = 0, seeking = false; // se busca un cuadro por vez, siempre el más reciente pedido
-
-  const place = () => {
-    for (const k of ['left', 'top', 'width', 'height']) video.style[k] = img.style[k];
-  };
+/** Un clip que se recorre por búsqueda: siempre va al último instante pedido. */
+function scrubber(video) {
+  let target = 0, seeking = false, loaded = false;
   const seek = () => {
-    if (seeking || Math.abs(video.currentTime - target) < 0.01) return;
+    if (!loaded || seeking || Math.abs(video.currentTime - target) < 0.01) return;
     seeking = true;
     video.currentTime = target;
   };
   video.addEventListener('seeked', () => { seeking = false; seek(); });
-
-  const show = () => { place(); video.classList.add('visible'); };
-  const rest = () => { video.classList.remove('visible'); };   // vuelve a verse el render original
-
-  video.addEventListener('pointerdown', e => {
-    if (!enabled || !loaded) return;
-    video.setPointerCapture(e.pointerId);
-    drag = { x: e.clientX, time: video.currentTime };
-    hint.classList.add('gone');
-    show();
-  });
-  video.addEventListener('pointermove', e => {
-    if (!drag) return;
-    target = scrubTime(drag.time, e.clientX - drag.x, video.clientWidth, video.duration);
-    seek();
-  });
-  const end = () => {
-    if (!drag) return;
-    drag = null;
-    if (target < 0.05) rest();
+  video.addEventListener('loadeddata', () => { loaded = true; seek(); }, { once: true });
+  return {
+    get ready() { return loaded; },
+    load(url) { if (!video.src) { video.src = url; video.load(); } },
+    go(fraction) { target = fraction * (video.duration || 0); seek(); },
   };
-  video.addEventListener('pointerup', end);
-  video.addEventListener('pointercancel', end);
+}
+
+/**
+ * @param right  <video> del giro a la derecha; va encima y recibe el arrastre
+ * @param left   <video> del giro a la izquierda, o null si no hay clip
+ * @param img    <img> del render (los videos copian su posición)
+ * @param hint   elemento con la indicación "Arrastra…"
+ * @param urls   { right: string, left?: string }
+ * @returns {{ enable(on: boolean), position(): number }}
+ */
+export function initExterior(right, left, img, hint, urls) {
+  const clips = { right: scrubber(right), left: left && urls.left ? scrubber(left) : null };
+  let enabled = false, pos = 0, drag = null;
+
+  const place = () => {
+    for (const v of [right, left]) if (v) for (const k of ['left', 'top', 'width', 'height']) v.style[k] = img.style[k];
+  };
+  // pos > 0: clip derecho; pos < 0: clip izquierdo; cerca de 0: render original.
+  const render = () => {
+    const resting = Math.abs(pos) < 0.012 && !drag;
+    right.classList.toggle('visible', !resting && pos >= 0);
+    left?.classList.toggle('visible', !resting && pos < 0);
+    if (pos >= 0) clips.right.go(pos); else clips.left.go(-pos);
+  };
+
+  right.addEventListener('pointerdown', e => {
+    if (!enabled || !clips.right.ready) return;
+    right.setPointerCapture?.(e.pointerId);
+    drag = { x: e.clientX, pos };
+    hint.classList.add('gone');
+    place(); render();
+  });
+  right.addEventListener('pointermove', e => {
+    if (!drag) return;
+    pos = scrubPosition(drag.pos, e.clientX - drag.x, right.clientWidth, !!clips.left?.ready);
+    render();
+  });
+  const end = () => { if (drag) { drag = null; render(); } };
+  right.addEventListener('pointerup', end);
+  right.addEventListener('pointercancel', end);
   addEventListener('resize', () => { if (enabled) place(); });
 
   return {
+    position: () => pos,
     enable(on) {
       enabled = on;
-      video.classList.toggle('active', on);
+      right.classList.toggle('active', on);
       hint.hidden = !on;
-      if (!on) { drag = null; rest(); return; }
+      if (!on) { drag = null; pos = 0; render(); return; }
       place();
-      if (!loaded && !video.src) {
-        video.addEventListener('loadeddata', () => { loaded = true; }, { once: true });
-        video.src = url;           // se descarga recién cuando se muestra la fachada
-        video.load();
-      }
+      clips.right.load(urls.right);          // se descargan recién cuando se muestra la fachada
+      clips.left?.load(urls.left);
     },
   };
 }

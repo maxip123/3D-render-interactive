@@ -124,3 +124,13 @@ export function scrubTime(startTime, dxPx, widthPx, duration) {
   if (!(widthPx > 0) || !(duration > 0)) return startTime;
   return Math.min(duration, Math.max(0, startTime - dxPx / widthPx * duration));
 }
+
+/**
+ * Posición en el recorrido de la fachada, de -1 a 1: 0 es el render original,
+ * +1 el final del clip hacia la derecha y -1 el final del clip hacia la
+ * izquierda. Arrastrar la imagen a la izquierda mueve la cámara a la derecha.
+ */
+export function scrubPosition(startPos, dxPx, widthPx, hasLeft = true) {
+  if (!(widthPx > 0)) return startPos;
+  return Math.min(1, Math.max(hasLeft ? -1 : 0, startPos - dxPx / widthPx));
+}

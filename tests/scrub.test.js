@@ -18,3 +18,20 @@ test('ancho o duración inválidos devuelven el tiempo inicial', () => {
   expect(scrubTime(1, -100, 0, 4)).toBe(1);
   expect(scrubTime(1, -100, 800, NaN)).toBe(1);
 });
+
+import { scrubPosition } from '../web/src/math.js';
+
+test('posición: arrastrar a la izquierda va hacia +1 (clip derecho), a la derecha hacia -1 (clip izquierdo)', () => {
+  expect(scrubPosition(0, -400, 800)).toBe(0.5);
+  expect(scrubPosition(0, 400, 800)).toBe(-0.5);
+});
+test('posición: se limita a [-1, 1]', () => {
+  expect(scrubPosition(0.8, -800, 800)).toBe(1);
+  expect(scrubPosition(-0.8, 800, 800)).toBe(-1);
+});
+test('posición: sin clip izquierdo no baja de 0', () => {
+  expect(scrubPosition(0, 400, 800, false)).toBe(0);
+});
+test('posición: ancho inválido devuelve la inicial', () => {
+  expect(scrubPosition(0.3, -100, 0)).toBe(0.3);
+});
