@@ -78,3 +78,7 @@ body:not(.gallery) #enter-3d { display: none; }
 #orbit-hint { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); margin: 0; padding: 8px 14px; border-radius: 999px;
   background: var(--panel); color: var(--ink); font-size: 13px; white-space: nowrap; pointer-events: none; transition: opacity .4s; z-index: 2; }
 #orbit-hint.gone { opacity: 0; }
+
+/* Recorrido interior: clip entre vistas del mismo piso, encima del render. */
+.walk { position: fixed; opacity: 0; pointer-events: none; object-fit: fill; }
+.walk.visible { opacity: 1; }

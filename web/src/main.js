@@ -4,6 +4,7 @@ import { describeLoadError, groupViews } from './math.js';
 import { initGallery } from './gallery.js';
 import { initUI } from './ui.js';
 import { initExterior } from './exterior.js';
+import { initWalk } from './walk.js';
 
 const BASE = import.meta.env.BASE_URL;
 const $ = id => document.getElementById(id);
@@ -46,7 +47,7 @@ async function start() {
   const gallery = initGallery(viewsData, img, () => ({ w: innerWidth, h: innerHeight }), (s, v) => {
     ui.setState(s, v);
     exterior.enable(v.id === 'fachada');     // solo la fachada tiene clip para rodearla
-  }, BASE);
+  }, BASE, initWalk($('walk'), img, BASE));
 
   async function enter3D() {
     if (app || entering) return;

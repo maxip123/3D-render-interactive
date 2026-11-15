@@ -153,3 +153,12 @@ siguiente). Three.js y el modelo se descargan recién al tocar "Recorrer en 3D",
 y el recorrido continúa en la vista que estaba abierta. Motivo: que abra al
 instante y no cargue el 3D en equipos modestos sin que se pida. Se descartó el
 recorrido animado con IA (Higgsfield) por costo.
+
+## Cambio posterior (2026-11-15): clips entre vistas interiores
+
+En la galería, "siguiente" dentro de un mismo piso reproduce un clip de 5 s
+(Seedance, generado con la prueba gratuita) que va del render de origen al de
+destino, encima de la imagen; al terminar queda el render original. Hacia
+atrás, entre pisos o donde falta clip, se usa el fundido de siempre. Los clips
+están en `web/public/recorrido/` y su lista en `web/src/walk.js`. Falta
+`p2-a-b`. Con movimiento reducido no se reproducen. El modo 3D no los usa.
