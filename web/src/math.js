@@ -45,10 +45,38 @@ export function fitRect(imgW, imgH, boxW, boxH) {
 /** Campo de visión del recorrido libre. */
 export const FREE_FOV = 50;
 
-/** Zona de la pantalla donde cabe el render: deja franjas iguales arriba y abajo para los controles. */
-export function renderBox(viewportW, viewportH, margin) {
+/** Franja libre sobre y bajo el render, según el ancho del escenario. */
+export function stageMargin(stageW) {
+  return stageW < 700 ? 48 : 64;
+}
+
+/**
+ * Avance del recorrido interior tras arrastrar `dxPx`: de -1 (vista anterior)
+ * a 1 (vista siguiente); 0 es la vista actual. Arrastrar la imagen a la
+ * izquierda avanza. Solo se mueve hacia donde hay clip.
+ */
+export function walkOffset(dxPx, widthPx, hasNext, hasPrev, gain = 1.4) {
+  if (!(widthPx > 0)) return 0;
+  return Math.min(hasNext ? 1 : 0, Math.max(hasPrev ? -1 : 0, -dxPx / widthPx * gain));
+}
+
+/** Dónde termina el recorrido al soltar: en la vista vecina (±1) o de vuelta en la actual (0). */
+export function walkSettle(offset, threshold = 0.3) {
+  return Math.abs(offset) >= threshold ? Math.sign(offset) : 0;
+}
+
+/**
+ * Zona del escenario donde cabe el render: deja franjas iguales arriba y abajo
+ * para el pie de foto y, si se pide, aire a los costados.
+ */
+export function renderBox(viewportW, viewportH, margin, gutter = 0) {
   const m = Math.min(margin, viewportH / 3);
-  return { x: 0, y: m, w: viewportW, h: viewportH - 2 * m };
+  return { x: gutter, y: m, w: viewportW - 2 * gutter, h: viewportH - 2 * m };
+}
+
+/** Aire a cada lado del render, según el ancho del escenario. */
+export function stageGutter(stageW) {
+  return stageW < 520 ? 0 : 32;          // en un celular el render va de borde a borde
 }
 
 /**

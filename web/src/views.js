@@ -1,9 +1,9 @@
 // Vistas guardadas: vuelo de cámara a la escena y fundido al render original.
 import * as THREE from 'three';
-import { fitRect, renderBox, verticalFovFor, createFlight, FREE_FOV } from './math.js';
+import { fitRect, renderBox, verticalFovFor, createFlight, stageMargin, stageGutter, FREE_FOV } from './math.js';
+import { frameRender } from './frame.js';
 
 const FLY_MS = 1400;
-const MARGIN = 76;                         // franja libre para los controles, arriba y abajo
 const DEFAULT_SIZE = [1402, 1122];         // tamaño de los renders mientras la imagen no cargó
 
 /**
@@ -32,15 +32,12 @@ export function initViews(viewer, views, img, onState) {
   const renderRect = () => {
     const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
     const [iw, ih] = img.naturalWidth ? [img.naturalWidth, img.naturalHeight] : DEFAULT_SIZE;
-    const box = renderBox(w, h, MARGIN);
+    const box = renderBox(w, h, stageMargin(w), stageGutter(w));
     const r = fitRect(iw, ih, box.w, box.h);
     return { x: box.x + r.x, y: box.y + r.y, w: r.w, h: r.h, viewportH: h };
   };
   const fovFor = view => { const r = renderRect(); return verticalFovFor(view.fov, r.h, r.viewportH); };
-  const layout = () => {
-    const r = renderRect();
-    Object.assign(img.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
-  };
+  const layout = () => frameRender(img, renderRect());
   const hide = () => img.classList.remove('visible');
   const showWhenReady = view => {
     if (current !== view || !arrived || !loaded) return;

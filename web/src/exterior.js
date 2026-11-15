@@ -25,11 +25,10 @@ function scrubber(video) {
  * @param right  <video> del giro a la derecha; va encima y recibe el arrastre
  * @param left   <video> del giro a la izquierda, o null si no hay clip
  * @param img    <img> del render (los videos copian su posición)
- * @param hint   elemento con la indicación "Arrastra…"
  * @param urls   { right: string, left?: string }
  * @returns {{ enable(on: boolean), position(): number }}
  */
-export function initExterior(right, left, img, hint, urls) {
+export function initExterior(right, left, img, urls) {
   const clips = { right: scrubber(right), left: left && urls.left ? scrubber(left) : null };
   let enabled = false, pos = 0, drag = null;
 
@@ -46,9 +45,8 @@ export function initExterior(right, left, img, hint, urls) {
 
   right.addEventListener('pointerdown', e => {
     if (!enabled || !clips.right.ready) return;
-    right.setPointerCapture?.(e.pointerId);
+    try { right.setPointerCapture(e.pointerId); } catch { /* el puntero ya no está activo */ }
     drag = { x: e.clientX, pos };
-    hint.classList.add('gone');
     place(); render();
   });
   right.addEventListener('pointermove', e => {
@@ -66,7 +64,6 @@ export function initExterior(right, left, img, hint, urls) {
     enable(on) {
       enabled = on;
       right.classList.toggle('active', on);
-      hint.hidden = !on;
       if (!on) { drag = null; pos = 0; render(); return; }
       place();
       clips.right.load(urls.right);          // se descargan recién cuando se muestra la fachada

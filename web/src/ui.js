@@ -1,76 +1,67 @@
 // Controles en pantalla. No toca la escena: solo dibuja y avisa por callbacks.
 import { groupViews } from './math.js';
-import { FLOOR_OPTIONS } from './floors.js';
+import { initMap, FLOOR_NAMES } from './map.js';
+import { clipFor } from './walk.js';
 
-const FLOOR_TITLES = { EXT: 'Fachada', PB: 'Planta baja', P1: '1.º piso', P2: '2.º piso' };
-const LETTERS = { a: 'A', b: 'B', c: 'C', d: 'D' };
+const letterOf = view => view.id.split('-')[1]?.toUpperCase() ?? '';
 
 /** Nombre legible de una vista: "Planta baja · vista A". */
 export function viewLabel(view) {
-  const letter = LETTERS[view.id.split('-')[1]];
-  return letter ? `${FLOOR_TITLES[view.floor]} · vista ${letter}` : FLOOR_TITLES[view.floor];
+  const letter = letterOf(view);
+  return letter ? `${FLOOR_NAMES[view.floor]} · vista ${letter}` : FLOOR_NAMES[view.floor];
 }
 
 /**
- * @param handlers {{ onFloor(id), onView(id), onStep(dir: 1|-1), onToggle(showRender: boolean), onClose(), onEnter3D() }}
- * @returns {{ setFloor(id), setState(state, view) }}
+ * @param handlers {{ onFloor(id), onView(id), onStep(dir: 1|-1), onToggle(showRender: boolean), onClose(), onEnter3D(), onExit3D() }}
+ * @returns {{ setFloor(id), setState(state, view), setWalk(tramo|null) }}
  */
-export function initUI(views, handlers) {
+export function initUI(views, handlers, base = '/') {
   const $ = id => document.getElementById(id);
-  const floors = $('floors'), strip = $('strip'), bar = $('view-bar'), toggle = $('toggle'), hint = $('hint');
+  const caption = $('caption'), toggle = $('toggle'), actions = $('view-actions'), hint = $('view-hint');
+  const order = groupViews(views).flatMap(g => g.items);
+  const walkable = view => {
+    const i = order.indexOf(view);
+    return !!(clipFor(view.id, order[i + 1]?.id) || clipFor(order[i - 1]?.id, view.id));
+  };
 
-  for (const opt of FLOOR_OPTIONS) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.textContent = opt.label; b.dataset.floor = opt.id;
-    b.setAttribute('aria-pressed', String(opt.id === 'ALL'));
-    b.addEventListener('click', () => handlers.onFloor(opt.id));
-    floors.append(b);
-  }
+  const map = initMap($('map'), views, base, { onView: handlers.onView, onFloor: handlers.onFloor, label: viewLabel });
+  let state = 'free', view = null, cut = 'ALL';
 
-  for (const group of groupViews(views)) {
-    const section = document.createElement('section');
-    const h = document.createElement('h2'); h.textContent = FLOOR_TITLES[group.floor];
-    const row = document.createElement('div'); row.className = 'row';
-    for (const view of group.items) {
-      const b = document.createElement('button');
-      b.type = 'button'; b.dataset.view = view.id; b.title = viewLabel(view);
-      const img = document.createElement('img');
-      img.src = `${import.meta.env.BASE_URL}renders/thumbs/${view.render}`; img.alt = viewLabel(view); img.loading = 'lazy';
-      b.append(img);
-      b.addEventListener('click', () => handlers.onView(view.id));
-      row.append(b);
-    }
-    section.append(h, row); strip.append(section);
-  }
-
-  toggle.addEventListener('click', () => handlers.onToggle(toggle.getAttribute('aria-pressed') !== 'true'));
+  toggle.addEventListener('click', () => handlers.onToggle(state !== 'render'));
   $('close-view').addEventListener('click', () => handlers.onClose());
   $('enter-3d').addEventListener('click', () => handlers.onEnter3D());
-  $('prev-view').addEventListener('click', () => handlers.onStep(-1));
-  $('next-view').addEventListener('click', () => handlers.onStep(1));
-  const dismissHint = () => hint.classList.add('gone');
-  $('stage').addEventListener('pointerdown', dismissHint, { once: true });
+  $('whole').addEventListener('click', () => handlers.onFloor('ALL'));
+  $('exit-3d').addEventListener('click', () => handlers.onExit3D());
+  addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight') handlers.onStep(1);
+    else if (e.key === 'ArrowLeft') handlers.onStep(-1);
+  });
 
-  for (const id of ['top', 'strip', 'hint']) $(id).hidden = false;
+  function draw() {
+    const gallery = document.body.classList.contains('gallery');
+    const inView = state === 'render' || state === 'model';
+    document.body.dataset.state = state;
+    caption.hidden = false;
+    map.setCurrent(state === 'free' ? null : view);
+
+    $('view-floor').textContent = view ? FLOOR_NAMES[view.floor] : FLOOR_NAMES[cut] ?? 'Edificio completo';
+    $('view-letter').textContent = view && letterOf(view) ? `Vista ${letterOf(view)}` : '';
+
+    actions.hidden = gallery || !inView;
+    toggle.textContent = state === 'render' ? 'Ver modelo' : 'Ver render';
+    toggle.hidden = !view?.position;      // sin escena en el modelo no hay nada que alternar
+
+    const tip = gallery
+      ? (view?.floor === 'EXT' ? 'Arrastra para rodear la fachada' : view && walkable(view) ? 'Arrastra para caminar' : '')
+      : state === 'free' ? 'Arrastra para girar · rueda o pellizco para acercar' : '';
+    $('view-hint-text').textContent = tip;
+    hint.hidden = !tip;
+  }
 
   return {
-    setFloor(id) {
-      for (const b of floors.children) b.setAttribute('aria-pressed', String(b.dataset.floor === id));
-    },
-    setState(state, view) {
-      const inView = state === 'render' || state === 'model';
-      bar.hidden = !inView;
-      strip.hidden = inView;            // el render se ve entero: la tira vuelve al salir de la vista
-      if (inView || state === 'flying') dismissHint();
-      if (inView) {
-        $('view-name').textContent = viewLabel(view);
-        toggle.setAttribute('aria-pressed', String(state === 'render'));
-        toggle.textContent = state === 'render' ? 'Ver modelo' : 'Ver render';
-        toggle.hidden = !view.position;   // sin escena en el modelo no hay nada que alternar
-      }
-      for (const b of strip.querySelectorAll('button')) {
-        b.setAttribute('aria-current', String(!!view && state !== 'free' && b.dataset.view === view.id));
-      }
-    },
+    setFloor(id) { cut = id; map.setFloor(id); draw(); },
+    setState(next, v) { state = next; view = v ?? null; draw(); },
+    setWalk: leg => map.setWalk(leg),
   };
 }

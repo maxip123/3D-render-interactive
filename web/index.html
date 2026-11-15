@@ -3,37 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Entreaguas Resto Bar — recorrido 3D</title>
+  <meta name="theme-color" content="#14100d">
+  <title>Entreaguas Resto Bar — recorrido</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
   <canvas id="stage" aria-label="Modelo 3D de Entreaguas Resto Bar. Arrastra para girar."></canvas>
   <img id="render" alt="" draggable="false">
-  <video id="orbit-left" class="orbit" muted playsinline preload="auto" aria-hidden="true"></video>
-  <video id="orbit" class="orbit" muted playsinline preload="auto" aria-label="Fachada: arrastra para rodearla"></video>
-  <video id="walk" class="walk" muted playsinline preload="auto" aria-hidden="true"></video>
+  <video id="orbit-left" class="clip" muted playsinline preload="auto" aria-hidden="true"></video>
+  <video id="orbit" class="clip" muted playsinline preload="auto" aria-label="Fachada: arrastra para rodearla"></video>
+  <video id="walk-a" class="clip walk" muted playsinline preload="auto" aria-hidden="true"></video>
+  <video id="walk-b" class="clip walk" muted playsinline preload="auto" aria-hidden="true"></video>
+  <div id="pad" aria-hidden="true"></div>
+  <div id="scrim" aria-hidden="true"></div>
 
-  <header id="top" hidden>
-    <div class="brand">
-      <h1>Entreaguas</h1>
-      <p>Resto Bar · recorrido 3D</p>
+  <div id="caption" hidden>
+    <p id="view-name" aria-live="polite"><span id="view-floor"></span><span id="view-letter"></span></p>
+    <p id="view-hint" hidden>
+      <svg viewBox="0 0 26 12" width="26" height="12" aria-hidden="true"><path d="M5.5 1.5 1 6l4.5 4.5M20.5 1.5 25 6l-4.5 4.5M1 6h24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="view-hint-text"></span>
+    </p>
+    <div id="view-actions" hidden>
+      <button id="toggle" type="button">Ver modelo</button>
+      <button id="close-view" type="button">Recorrer libre</button>
     </div>
-    <div id="floors" class="segmented" role="group" aria-label="Piso"></div>
-  </header>
-
-  <div id="view-bar" hidden>
-    <button id="prev-view" type="button" aria-label="Vista anterior">‹</button>
-    <span id="view-name"></span>
-    <button id="next-view" type="button" aria-label="Vista siguiente">›</button>
-    <button id="enter-3d" type="button">Recorrer en 3D</button>
-    <button id="toggle" type="button" aria-pressed="true">Ver modelo</button>
-    <button id="close-view" type="button">Recorrer libre</button>
   </div>
 
-  <p id="orbit-hint" hidden>Arrastra la imagen para rodear la fachada</p>
-  <p id="hint" hidden>Arrastra para girar · pellizca o rueda para acercar</p>
-  <nav id="strip" aria-label="Vistas de los renders" hidden></nav>
+  <aside id="guide">
+    <header class="brand">
+      <h1>Entreaguas</h1>
+      <p>Resto Bar</p>
+    </header>
+    <nav id="map" aria-label="Plano del restaurante"></nav>
+    <footer class="guide-foot">
+      <button id="enter-3d" type="button">Recorrer en 3D</button>
+      <button id="whole" type="button">Ver edificio<span class="wide"> completo</span></button>
+      <button id="exit-3d" type="button">
+        <svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path d="M6 1 1 6l5 5M1 6h14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Volver al recorrido<span class="wide"> guiado</span></span>
+      </button>
+    </footer>
+  </aside>
 
   <div id="loading" role="status" aria-live="polite">
     <p id="loading-text">Cargando…</p>

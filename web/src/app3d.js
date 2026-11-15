@@ -7,7 +7,7 @@ import { initViews } from './views.js';
 import { watchQuality } from './quality.js';
 
 /**
- * @returns {Promise<{ openView(id), step(dir), selectFloor(id), toggleRender(on), close() }>}
+ * @returns {Promise<{ openView(id), step(dir), selectFloor(id), toggleRender(on), close(), current(): object|null, run(on: boolean) }>}
  */
 export async function start3D({ base, canvas, img, viewsData, order, getJson, onProgress, ui }) {
   const [viewer, floorsData] = await Promise.all([
@@ -39,6 +39,8 @@ export async function start3D({ base, canvas, img, viewsData, order, getJson, on
     selectFloor: id => views.flyTo(floors.select(id)),
     toggleRender: on => views.showRender(on),
     close: () => views.flyTo(floors.select(floors.current())),
+    current: () => views.current(),
+    run: on => viewer.run(on),
   };
 }
 

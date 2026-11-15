@@ -160,5 +160,32 @@ En la galería, "siguiente" dentro de un mismo piso reproduce un clip de 5 s
 (Seedance, generado con la prueba gratuita) que va del render de origen al de
 destino, encima de la imagen; al terminar queda el render original. Hacia
 atrás, entre pisos o donde falta clip, se usa el fundido de siempre. Los clips
-están en `web/public/recorrido/` y su lista en `web/src/walk.js`. Falta
-`p2-a-b`. Con movimiento reducido no se reproducen. El modo 3D no los usa.
+están en `web/public/recorrido/` y su lista en `web/src/walk.js`: los nueve
+tramos de los tres pisos. Con movimiento reducido no se reproducen. El modo 3D
+no los usa.
+
+## Cambio posterior (2026-11-15): mapa de planos y arrastre para caminar
+
+- **El mapa es la navegación.** Un panel (a la derecha en apaisado, abajo en
+  vertical) muestra los tres planos apilados como el edificio, con un marcador
+  por vista y un haz que indica hacia dónde mira la cámara. Reemplaza a las
+  flechas, a la tira de miniaturas y al selector de piso: un clic en un
+  marcador abre la vista; en 3D, un clic en el plano corta el modelo en ese piso.
+- **Planos.** `tools/extract-plans.mjs` saca la imagen de cada PDF, vuelve
+  transparente el fondo y la guarda en `web/public/planos/`. La máscara que
+  trae el PDF no sirve (es un patrón rayado). La posición de cada plano respecto
+  del modelo está en `web/src/plans.js`, calibrada superponiendo el plano a una
+  vista cenital del modelo: exacta en planta baja, dentro de ~15 cm en los otros.
+- **Arrastrar para caminar.** En los interiores, arrastrar la imagen recorre el
+  clip hacia la vista siguiente (a la izquierda) o la anterior (a la derecha);
+  al soltar pasado el 30 % se llega a la vista vecina, si no se vuelve. Un punto
+  avanza sobre el plano mientras tanto. Las flechas del teclado siguen pasando
+  de vista.
+- **Tipografía.** Piazzolla (títulos) y Archivo (interfaz), servidas desde el
+  propio sitio.
+
+## Cambio posterior (2026-11-15): volver del 3D al recorrido guiado
+
+En el modo 3D, "Volver al recorrido guiado" regresa a los renders en la vista
+que estaba abierta. El modelo queda cargado y deja de dibujarse, así que volver
+a entrar al 3D es inmediato.

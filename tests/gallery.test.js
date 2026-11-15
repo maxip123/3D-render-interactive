@@ -23,8 +23,8 @@ test('abrir una vista la muestra cuando su imagen cargó, entera y bajo la franj
   img.load();
   expect(img.classList.contains('visible')).toBe(true);
   expect(states.at(-1)).toEqual(['render', 'pb-a']);
-  expect(img.style.top).toBe('76px');
-  expect(img.style.height).toBe('448px');
+  expect(img.style.top).toBe('64px');
+  expect(img.style.height).toBe('472px');
 });
 test('al cambiar de vista se oculta la anterior hasta que carga la nueva', () => {
   const { img, g } = setup();
@@ -50,39 +50,85 @@ test('first() devuelve la primera vista en orden de galería', () => {
   expect(setup().g.first().id).toBe('fachada');
 });
 
+// Recorrido de mentira: guarda con qué clips se armó y deja disparar los avisos a mano.
 function fakeWalk() {
-  const log = [];
-  let end = null;
-  return { log, end: () => { const f = end; end = null; f?.(); },
-    preload: n => log.push(['preload', n]), play: (n, f) => { log.push(['play', n]); end = f; return true; },
-    finish() { this.end(); }, cancel: () => { end = null; log.push(['cancel']); }, hide: () => log.push(['hide']), busy: () => !!end };
+  const w = { armed: null, hooks: null, advanced: 0, canAdvance: true,
+    arm(next, prev, hooks) { w.armed = [next, prev]; w.hooks = hooks; },
+    advance() { if (!w.hooks || !w.armed[0] || !w.canAdvance) return false; w.advanced++; return true; },
+    finish() {}, busy: () => false };
+  return w;
 }
 const PB = [V('pb-a', 'PB'), V('pb-b', 'PB'), V('pb-c', 'PB')];
+const walking = () => {
+  const img = fakeImg(), walk = fakeWalk(), states = [], legs = [];
+  const g = initGallery(PB, img, () => ({ w: 800, h: 600 }), (s, v) => states.push(v.id), '/', walk, leg => legs.push(leg));
+  return { img, walk, states, legs, g };
+};
 
-test('siguiente dentro del piso reproduce el clip y al terminar cambia al render sin fundido', () => {
-  const img = fakeImg(), walk = fakeWalk(), states = [];
-  const g = initGallery(PB, img, () => ({ w: 800, h: 600 }), (s, v) => states.push(v.id), '/', walk);
+test('cada vista se arma con el clip hacia la siguiente y el que llega desde la anterior', () => {
+  const { img, walk, g } = walking();
   g.open('pb-a'); img.load();
-  expect(walk.log).toContainEqual(['preload', 'pb-a-b']);
-  g.step(1);
-  expect(walk.log.at(-1)).toEqual(['play', 'pb-a-b']);
-  expect(g.current().id).toBe('pb-b');
-  expect(states.at(-1)).toBe('pb-b');
-  walk.end();
-  expect(img.src).toBe('/renders/pb-b.jpg');
-  expect(img.classList.contains('visible')).toBe(true);   // queda el último cuadro del clip encima
+  expect(walk.armed).toEqual(['pb-a-b', null]);
+  g.open('pb-b');
+  expect(walk.armed).toEqual([null, null]);          // mientras carga no se puede arrastrar
   img.load();
-  expect(walk.log).toContainEqual(['hide']);
+  expect(walk.armed).toEqual(['pb-b-c', 'pb-a-b']);
 });
 
-test('anterior no usa clip y volver a tocar siguiente saltea el clip en curso', () => {
-  const img = fakeImg(), walk = fakeWalk();
-  const g = initGallery(PB, img, () => ({ w: 800, h: 600 }), null, '/', walk);
+test('ir a la vista siguiente camina hasta ella y cambia de render sin fundido', () => {
+  const { img, walk, states, g } = walking();
+  g.open('pb-a'); img.load();
+  g.go('pb-b');
+  expect(walk.advanced).toBe(1);
+  expect(g.current().id).toBe('pb-a');                // todavía va caminando
+  walk.hooks.commit(1);
+  expect(g.current().id).toBe('pb-b');
+  expect(states.at(-1)).toBe('pb-b');
+  expect(img.src).toBe('/renders/pb-b.jpg');
+  expect(img.classList.contains('visible')).toBe(true);   // el último cuadro del clip sigue encima
+});
+
+test('arrastrar hacia atrás vuelve a la vista anterior', () => {
+  const { img, walk, g } = walking();
+  g.open('pb-b'); img.load();
+  walk.hooks.commit(-1);
+  expect(g.current().id).toBe('pb-a');
+  expect(img.src).toBe('/renders/pb-a.jpg');
+});
+
+test('ir hacia atrás o salteando vistas no camina: abre con fundido', () => {
+  const { img, walk, g } = walking();
   g.open('pb-b'); img.load();
   g.step(-1);
-  expect(walk.log.some(e => e[0] === 'play')).toBe(false);
+  expect(walk.advanced).toBe(0);
+  expect(g.current().id).toBe('pb-a');
   img.load();
-  g.step(1); g.step(1);
-  expect(walk.log.filter(e => e[0] === 'play')).toEqual([['play', 'pb-a-b'], ['play', 'pb-b-c']]);
+  g.go('pb-c');
+  expect(walk.advanced).toBe(0);
+  expect(img.classList.contains('visible')).toBe(false);
+});
+
+test('mientras se camina avisa el tramo y el avance para el mapa', () => {
+  const { img, walk, legs, g } = walking();
+  g.open('pb-b'); img.load();
+  walk.hooks.progress(0.4);
+  expect(legs.at(-1)).toEqual(['pb-b', 'pb-c', 0.4]);
+  walk.hooks.progress(-0.25);
+  expect(legs.at(-1)).toEqual(['pb-a', 'pb-b', 0.75]);
+  walk.hooks.progress(0);
+  expect(legs.at(-1)).toBeNull();
+});
+
+test('tras detenerse (modo 3D) no abre nada, y al reanudar vuelve a mostrar la vista pedida', () => {
+  const { img, walk, g } = walking();
+  g.open('pb-a'); img.load();
+  g.stop();
+  g.open('pb-b');
+  expect(g.current().id).toBe('pb-a');
+  expect(walk.armed).toEqual([null, null]);
+  g.start('pb-c');
   expect(g.current().id).toBe('pb-c');
+  img.load();
+  expect(img.classList.contains('visible')).toBe(true);
+  expect(walk.armed).toEqual([null, 'pb-b-c']);
 });

@@ -15,8 +15,9 @@ describe('clipFor', () => {
   });
 
   it('solo usa clips que existen', () => {
-    expect(clipFor('p2-a', 'p2-b')).toBeNull();          // todavía no está
+    expect(clipFor('p2-a', 'p2-b', [])).toBeNull();
     expect(clipFor('p2-a', 'p2-b', ['p2-a-b'])).toBe('p2-a-b');
+    expect(clipFor('p2-a', 'p2-b')).toBe('p2-a-b');      // los tres pisos tienen todos sus tramos
   });
 
   it('la lista de clips coincide con los archivos de recorrido/', async () => {

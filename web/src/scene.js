@@ -113,13 +113,16 @@ export async function createViewer(canvas, { modelUrl, onProgress } = {}) {
   let frozen = false;
   const frameFns = [];
   let last = performance.now();
-  renderer.setAnimationLoop(now => {
+  const loop = now => {
     const dt = (now - last) / 1000; last = now;
     for (const fn of frameFns) fn(dt, now);
     if (!frozen) controls.update();
     renderer.render(scene, camera);
-  });
+  };
+  renderer.setAnimationLoop(loop);
+  // Fuera del modo 3D no se dibuja: el modelo queda cargado para volver sin esperar.
+  const run = on => { last = performance.now(); renderer.setAnimationLoop(on ? loop : null); if (on) resize(); };
 
-  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, setShadows, homePose, resize,
+  return { scene, camera, renderer, controls, model, bounds, sun, onFrame: fn => frameFns.push(fn), setClipHeight, setShadows, homePose, resize, run,
     freeze: on => { frozen = on; }, get frozen() { return frozen; } };
 }
