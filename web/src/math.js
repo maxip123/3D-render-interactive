@@ -18,9 +18,11 @@ export function clipHeightFor(floors, selection) {
 
 const TILT = 35 * Math.PI / 180;
 
+const FIT = 1.15;                          // aire alrededor del piso encuadrado
+
 /**
- * Cámara cenital inclinada 35° sobre un piso, a la distancia justa para que el
- * largo del edificio quepa en el ancho de la pantalla.
+ * Cámara cenital inclinada 35° sobre un piso, a la distancia justa para que la
+ * huella entera quepa en pantalla, a lo ancho y a lo hondo.
  * @param bounds {{min:number[], max:number[]}} @param floor {{floorY:number, box?:{min:number[],max:number[]}}}
  * @returns {{position:number[], target:number[]}}
  */
@@ -29,9 +31,10 @@ export function topDownPose(bounds, floor, aspect, fovDeg = FREE_FOV) {
   const lo = floor.box ? floor.box.min : [bounds.min[0], bounds.min[2]];
   const hi = floor.box ? floor.box.max : [bounds.max[0], bounds.max[2]];
   const target = [(lo[0] + hi[0]) / 2, floor.floorY, (lo[1] + hi[1]) / 2];
-  const halfSpan = (hi[0] - lo[0]) / 2 * 1.15;
-  const halfH = Math.atan(Math.tan(fovDeg * Math.PI / 360) * aspect);
-  const dist = halfSpan / Math.tan(halfH);
+  const hx = (hi[0] - lo[0]) / 2, hz = (hi[1] - lo[1]) / 2;
+  const tanV = Math.tan(fovDeg * Math.PI / 360), tanH = tanV * aspect;
+  // El borde cercano queda hz·sen(35°) más cerca de la cámara, y por perspectiva es el que se ve más grande.
+  const dist = hz * Math.sin(TILT) + FIT * Math.max(hx / tanH, hz * Math.cos(TILT) / tanV);
   return { position: [target[0], target[1] + dist * Math.cos(TILT), target[2] + dist * Math.sin(TILT)], target };
 }
 

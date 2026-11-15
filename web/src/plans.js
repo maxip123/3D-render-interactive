@@ -18,6 +18,13 @@ export function planPoint(plan, position) {
   return { x: (position[0] - plan.x0) * scale / plan.w, y: (position[2] - plan.z0) * scale / plan.h };
 }
 
+/** Huella del plano en el modelo: { min: [x, z], max: [x, z] }, o null si no hay plano. */
+export function planBox(plan) {
+  if (!plan) return null;
+  const z1 = plan.z0 + (plan.x1 - plan.x0) * plan.h / plan.w;
+  return { min: [plan.x0, plan.z0], max: [plan.x1, z1] };
+}
+
 /** Rumbo de la cámara sobre el plano: grados en sentido horario desde la derecha de la imagen. */
 export function planHeading(quaternion) {
   const [x, y, z, w] = quaternion;
